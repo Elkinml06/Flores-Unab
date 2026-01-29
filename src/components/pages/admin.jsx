@@ -1,10 +1,23 @@
-import Hero from "./admin/hero.jsx";
+import { Routes, Route } from "react-router-dom";
+import Login from "./admin/login.jsx";
+import Dashboard from "./admin/dashboard.jsx";
+import ProtectedAdminRoute from "./admin/ProtectedAdminRoute.jsx";
 
-export default function Admin() {
+const AdminApp = () => {
   return (
-    <div>
-      <Hero />
-      
-    </div>
+    <Routes>
+      <Route path="/" element={<Login />} />
+
+      <Route
+        path="dashboard"
+        element={
+          <ProtectedAdminRoute>
+            <Dashboard />
+          </ProtectedAdminRoute>
+        }
+      />
+    </Routes>
   );
-}
+};
+
+export default AdminApp;
