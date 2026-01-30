@@ -54,26 +54,84 @@ export default function PagoNequi() {
 
       if (!datosCliente) return alert("Faltan los datos del cliente");
 
-      // Guardar información del cliente en Supabase antes de completar el pedido
+      // 1. Obtener o crear Cliente en Supabase
+      let clienteId = null;
       try {
         const nombreGuardar = datosCliente.anonimo ? "Anónimo" : datosCliente.nombreRemitente;
-        const { error: errorSupabase } = await supabase
-          .from('clientes')
-          .insert([
-            { nombre: nombreGuardar, telefono: datosCliente.contacto }
-          ]);
 
-        if (errorSupabase) {
-          if (errorSupabase.code === '23505') {
-            console.log("El cliente ya existía en la base de datos");
-          } else {
-            console.error("Error guardando cliente:", errorSupabase);
-            // Opcional: Decidir si detener el flujo aquí o continuar
-            // return alert("Error al guardar datos del cliente");
-          }
+        // Intentar insertar
+        const { data: dataInsert, error: errorInsert } = await supabase
+          .from('clientes')
+          .insert([{ nombre: nombreGuardar, telefono: datosCliente.contacto }])
+          .select()
+          .single();
+
+        if (dataInsert) {
+          clienteId = dataInsert.id;
+        } else if (errorInsert && errorInsert.code === '23505') {
+          // Si ya existe, buscarlo por teléfono (asumiendo que es único)
+          const { data: dataExistente } = await supabase
+            .from('clientes')
+            .select('id')
+            .eq('telefono', datosCliente.contacto)
+            .single();
+
+          if (dataExistente) clienteId = dataExistente.id;
+        } else {
+          console.error("Error creando cliente:", errorInsert);
+          return alert("Error al registrar cliente. Intenta nuevamente.");
         }
       } catch (err) {
-        console.error("Error inesperado al guardar cliente:", err);
+        console.error("Error inesperado cliente:", err);
+        return alert("Error inesperado al procesar datos del cliente.");
+      }
+
+      if (!clienteId) return alert("No se pudo obtener el ID del cliente.");
+
+      // 2. Subir Comprobante a Supabase Storage (Bucket: vouchers)
+      let publicUrl = "";
+      try {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`;
+        const filePath = `comprobantes/${fileName}`; // Carpeta opcional
+
+        const { error: errorUpload } = await supabase.storage
+          .from('vouchers')
+          .upload(filePath, file);
+
+        if (errorUpload) {
+          console.error("Error subiendo archivo:", errorUpload);
+          return alert("Error al subir el comprobante. Intenta nuevamente.");
+        }
+
+        const { data: dataUrl } = supabase.storage
+          .from('vouchers')
+          .getPublicUrl(filePath);
+
+        publicUrl = dataUrl.publicUrl;
+      } catch (err) {
+        console.error("Error inesperado storage:", err);
+        return alert("Error inesperado al subir archivo.");
+      }
+
+      // 3. Guardar registro en comprobantes_pago
+      try {
+        const { error: errorVoucher } = await supabase
+          .from('comprobantes_pago')
+          .insert([
+            {
+              cliente_id: clienteId,
+              archivo_url: publicUrl,
+              estado: 'pendiente'
+            }
+          ]);
+
+        if (errorVoucher) {
+          console.error("Error guardando comprobante en DB:", errorVoucher);
+          // No detenemos el flujo localstorage, pero avisamos
+        }
+      } catch (err) {
+        console.error("Error inesperado voucher DB:", err);
       }
 
       const base64 = await fileToBase64(file);
