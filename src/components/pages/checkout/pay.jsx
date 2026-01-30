@@ -1,3 +1,4 @@
+import { supabase } from "../../../supabase";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -34,55 +35,77 @@ export default function PagoNequi() {
     setDragActive(false);
     handleFile(e.dataTransfer.files[0]);
   };
-const fileToBase64 = (file) => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = () => reject("Error al convertir archivo");
-  });
-};
+  const fileToBase64 = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject("Error al convertir archivo");
+    });
+  };
 
-const enviarPedido = async () => {
-  try {
-    if (!file) return;
+  const enviarPedido = async () => {
+    try {
+      if (!file) return;
 
-    const productos =
-      JSON.parse(localStorage.getItem("productosSeleccionados")) || [];
-    const datosCliente = JSON.parse(localStorage.getItem("datosPedido"));
+      const productos =
+        JSON.parse(localStorage.getItem("productosSeleccionados")) || [];
+      const datosCliente = JSON.parse(localStorage.getItem("datosPedido"));
 
-    if (!datosCliente) return alert("Faltan los datos del cliente");
+      if (!datosCliente) return alert("Faltan los datos del cliente");
 
-    const base64 = await fileToBase64(file);
+      // Guardar información del cliente en Supabase antes de completar el pedido
+      try {
+        const nombreGuardar = datosCliente.anonimo ? "Anónimo" : datosCliente.nombreRemitente;
+        const { error: errorSupabase } = await supabase
+          .from('clientes')
+          .insert([
+            { nombre: nombreGuardar, telefono: datosCliente.contacto }
+          ]);
 
-    const pedidoFinal = {
-      id: `PED-${Date.now()}`,
-      fecha: new Date().toISOString(),
-      estado: "pendiente",
-      cliente: datosCliente,
-      productos,
-      total,
-      pago: {
-        metodo: "Nequi",
-        comprobante: {
-          nombre: file.name,
-          tipo: file.type,
-          tamaño: file.size,
-          base64,
+        if (errorSupabase) {
+          if (errorSupabase.code === '23505') {
+            console.log("El cliente ya existía en la base de datos");
+          } else {
+            console.error("Error guardando cliente:", errorSupabase);
+            // Opcional: Decidir si detener el flujo aquí o continuar
+            // return alert("Error al guardar datos del cliente");
+          }
+        }
+      } catch (err) {
+        console.error("Error inesperado al guardar cliente:", err);
+      }
+
+      const base64 = await fileToBase64(file);
+
+      const pedidoFinal = {
+        id: `PED-${Date.now()}`,
+        fecha: new Date().toISOString(),
+        estado: "pendiente",
+        cliente: datosCliente,
+        productos,
+        total,
+        pago: {
+          metodo: "Nequi",
+          comprobante: {
+            nombre: file.name,
+            tipo: file.type,
+            tamaño: file.size,
+            base64,
+          },
         },
-      },
-    };
+      };
 
-    const pedidosPrevios = JSON.parse(localStorage.getItem("pedidos")) || [];
-    pedidosPrevios.push(pedidoFinal);
-    localStorage.setItem("pedidos", JSON.stringify(pedidosPrevios));
+      const pedidosPrevios = JSON.parse(localStorage.getItem("pedidos")) || [];
+      pedidosPrevios.push(pedidoFinal);
+      localStorage.setItem("pedidos", JSON.stringify(pedidosPrevios));
 
-    setPedidoEnviado(true);
-  } catch (error) {
-    console.error(error);
-    alert("Error al enviar el pedido. Intenta nuevamente.");
-  }
-};
+      setPedidoEnviado(true);
+    } catch (error) {
+      console.error(error);
+      alert("Error al enviar el pedido. Intenta nuevamente.");
+    }
+  };
 
 
 
@@ -223,9 +246,8 @@ const enviarPedido = async () => {
                   <span className="font-bold text-gray-900 tracking-wider">{nequiNumber.replace(/(\d{3})(\d{3})(\d{4})/, '$1 $2 $3')}</span>
                   <button
                     onClick={copiarNumero}
-                    className={`px-3 py-1 rounded-md text-sm font-medium transition-all ${
-                      copiado ? "bg-green-100 text-green-700" : "bg-red-500 text-white hover:bg-red-600"
-                    }`}
+                    className={`px-3 py-1 rounded-md text-sm font-medium transition-all ${copiado ? "bg-green-100 text-green-700" : "bg-red-500 text-white hover:bg-red-600"
+                      }`}
                   >
                     {copiado ? "✓ Copiado" : "📋 Copiar"}
                   </button>
@@ -239,9 +261,8 @@ const enviarPedido = async () => {
                   onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
                   onDragLeave={() => setDragActive(false)}
                   onDrop={handleDrop}
-                  className={`flex flex-col items-center justify-center border-2 border-dashed rounded-xl p-6 cursor-pointer text-center transition-all ${
-                    dragActive ? "border-red-500 bg-red-50" : file ? "border-green-500 bg-green-50" : "border-gray-300 bg-gray-50 hover:bg-gray-100"
-                  }`}
+                  className={`flex flex-col items-center justify-center border-2 border-dashed rounded-xl p-6 cursor-pointer text-center transition-all ${dragActive ? "border-red-500 bg-red-50" : file ? "border-green-500 bg-green-50" : "border-gray-300 bg-gray-50 hover:bg-gray-100"
+                    }`}
                 >
                   <input type="file" className="hidden" onChange={(e) => handleFile(e.target.files[0])} />
                   <p className="font-medium">{file ? "Archivo cargado ✓" : "Arrastra o haz clic para seleccionar"}</p>
@@ -259,9 +280,8 @@ const enviarPedido = async () => {
               <button
                 onClick={enviarPedido}
                 disabled={!file}
-                className={`w-full py-3 rounded-full font-semibold mt-2 transition-all ${
-                  file ? "bg-red-500 text-white hover:bg-red-600 shadow-md" : "bg-gray-300 text-gray-500 cursor-not-allowed"
-                }`}
+                className={`w-full py-3 rounded-full font-semibold mt-2 transition-all ${file ? "bg-red-500 text-white hover:bg-red-600 shadow-md" : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                  }`}
               >
                 {file ? "Enviar pedido y finalizar" : "Sube el comprobante primero"}
               </button>

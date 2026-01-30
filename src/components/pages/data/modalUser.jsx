@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import RosaImg from "../../../assets/rosa.avif";
 
+
 const PRODUCTOS_BASE = {
   1: { nombre: "Rosa", imagen: RosaImg, tipo: "rosa" },
   2: { nombre: "Carta", imagen: RosaImg, tipo: "carta" },
@@ -83,7 +84,7 @@ export default function DatosPedido() {
     );
   }, [anonimo, nombreRemitente, nombreReceptor, contacto, mensajes]);
 
-  const continuar = () => {
+  const continuar = async () => {
     if (!nombreReceptor.trim())
       return setError("Debes ingresar el nombre del receptor");
 
@@ -272,7 +273,7 @@ export default function DatosPedido() {
             <div className="h-1 bg-gradient-to-r from-red-500 via-gray-400 to-black opacity-60" />
           </div>
 
-          
+
         </div>
 
         <div className="hidden md:block fixed bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-red-500 to-transparent opacity-20"></div>
