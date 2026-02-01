@@ -2,7 +2,7 @@ import { supabase } from "../../../supabase";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
-const nequiNumber = "3001234567";
+const nequiNumber = "3045340716";
 
 export default function PagoNequi() {
   const navigate = useNavigate();
