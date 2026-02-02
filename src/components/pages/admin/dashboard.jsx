@@ -5,7 +5,7 @@ const Dashboard = () => {
   const [pedidos, setPedidos] = useState([]);
   const [filtroEstado, setFiltroEstado] = useState("todos");
   const [busqueda, setBusqueda] = useState("");
-  const [isOpen, setIsOpen] = useState(false);
+  const [modalAbierto, setModalAbierto] = useState(null); // Guarda el ID del pedido cuyo modal está abierto
   const [loading, setLoading] = useState(true);
 
   // Estados para UI
@@ -535,15 +535,15 @@ const Dashboard = () => {
                             <img
                               src={pedido.pago.comprobante.base64}
                               alt="Comprobante de pago"
-                              onClick={() => setIsOpen(true)} // Abrir modal
+                              onClick={() => setModalAbierto(pedido.id)} // Abrir modal de este pedido específico
                               className="w-40 rounded-lg border border-gray-300 shadow-sm hover:scale-105 transition-transform cursor-pointer"
                             />
 
-                            {/* 👇 MODAL (Se muestra solo si isOpen es true) */}
-                            {isOpen && (
+                            {/* 👇 MODAL (Se muestra solo si modalAbierto coincide con este pedido) */}
+                            {modalAbierto === pedido.id && (
                               <div
                                 className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75 p-4 animate-in fade-in duration-300"
-                                onClick={() => setIsOpen(false)} // Cerrar al hacer clic fuera
+                                onClick={() => setModalAbierto(null)} // Cerrar al hacer clic fuera
                               >
                                 <div className="relative max-w-3xl w-full flex flex-col items-center">
                                   {/* Botón de cerrar */}
@@ -551,7 +551,7 @@ const Dashboard = () => {
                                     className="fixed top-4 right-4 z-[60] bg-white/10 backdrop-blur-md border border-white/20 text-white rounded-full p-2 hover:bg-white/20 transition-all font-bold"
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      setIsOpen(false);
+                                      setModalAbierto(null);
                                     }}
                                   >
                                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
