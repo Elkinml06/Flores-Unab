@@ -11,6 +11,7 @@ export default function PagoNequi() {
   const [dragActive, setDragActive] = useState(false);
   const [total, setTotal] = useState(0);
   const [pedidoEnviado, setPedidoEnviado] = useState(false);
+  const [enviando, setEnviando] = useState(false);
 
   useEffect(() => {
     const productos = JSON.parse(
@@ -45,14 +46,24 @@ export default function PagoNequi() {
   };
 
   const enviarPedido = async () => {
+    // Prevenir múltiples envíos
+    if (enviando) return;
+
     try {
       if (!file) return;
+
+      // Deshabilitar botón inmediatamente
+      setEnviando(true);
 
       const productos =
         JSON.parse(localStorage.getItem("productosSeleccionados")) || [];
       const datosCliente = JSON.parse(localStorage.getItem("datosPedido"));
 
-      if (!datosCliente) return alert("Faltan los datos del cliente");
+      if (!datosCliente) {
+        alert("Faltan los datos del cliente");
+        setEnviando(false);
+        return;
+      }
 
       // 1. Subir Comprobante a Supabase Storage (Bucket: vouchers)
       // PRIMERO subimos el archivo. Si falla, no creamos cliente ni pedido.
@@ -68,7 +79,9 @@ export default function PagoNequi() {
 
         if (errorUpload) {
           console.error("Error subiendo archivo:", errorUpload);
-          return alert("Error al subir el comprobante. Intenta nuevamente.");
+          alert("Error al subir el comprobante. Intenta nuevamente.");
+          setEnviando(false);
+          return;
         }
 
         const { data: dataUrl } = supabase.storage
@@ -78,7 +91,9 @@ export default function PagoNequi() {
         publicUrl = dataUrl.publicUrl;
       } catch (err) {
         console.error("Error inesperado storage:", err);
-        return alert("Error inesperado al subir archivo.");
+        alert("Error inesperado al subir archivo.");
+        setEnviando(false);
+        return;
       }
 
       // 2. Obtener o crear Cliente en Supabase
@@ -111,15 +126,23 @@ export default function PagoNequi() {
             clienteId = nuevoCliente.id;
           } else {
             console.error("Error creando cliente:", errorInsert);
-            return alert("Error al registrar cliente. Intenta nuevamente.");
+            alert("Error al registrar cliente. Intenta nuevamente.");
+            setEnviando(false);
+            return;
           }
         }
       } catch (err) {
         console.error("Error inesperado cliente:", err);
-        return alert("Error inesperado al procesar datos del cliente.");
+        alert("Error inesperado al procesar datos del cliente.");
+        setEnviando(false);
+        return;
       }
 
-      if (!clienteId) return alert("No se pudo obtener el ID del cliente.");
+      if (!clienteId) {
+        alert("No se pudo obtener el ID del cliente.");
+        setEnviando(false);
+        return;
+      }
 
       // 3. Guardar registro en comprobantes_pago (Pedido Completo)
       try {
@@ -138,18 +161,23 @@ export default function PagoNequi() {
 
         if (errorVoucher) {
           console.error("Error guardando comprobante en DB:", errorVoucher);
-          return alert("Hubo un error guardando el pedido. Por favor contáctanos.");
+          alert("Hubo un error guardando el pedido. Por favor contáctanos.");
+          setEnviando(false);
+          return;
         }
 
         // Optimización: Mostrar éxito inmediatamente después del guardado exitoso
         setPedidoEnviado(true);
       } catch (err) {
         console.error("Error inesperado voucher DB:", err);
-        return alert("Error inesperado al guardar el pedido.");
+        alert("Error inesperado al guardar el pedido.");
+        setEnviando(false);
+        return;
       }
     } catch (error) {
       console.error(error);
       alert("Error al enviar el pedido. Intenta nuevamente.");
+      setEnviando(false);
     }
   };
 
@@ -325,11 +353,11 @@ export default function PagoNequi() {
 
               <button
                 onClick={enviarPedido}
-                disabled={!file}
-                className={`w-full py-3 rounded-full font-semibold mt-2 transition-all ${file ? "bg-red-500 text-white hover:bg-red-600 shadow-md" : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                disabled={!file || enviando}
+                className={`w-full py-3 rounded-full font-semibold mt-2 transition-all ${file && !enviando ? "bg-red-500 text-white hover:bg-red-600 shadow-md" : "bg-gray-300 text-gray-500 cursor-not-allowed"
                   }`}
               >
-                {file ? "Enviar pedido y finalizar" : "Sube el comprobante primero"}
+                {enviando ? "Enviando pedido..." : file ? "Enviar pedido y finalizar" : "Sube el comprobante primero"}
               </button>
 
               <div className="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200 text-xs sm:text-sm">
