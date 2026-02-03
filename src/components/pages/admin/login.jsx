@@ -8,8 +8,8 @@ const Login = () => {
 
     const navigate = useNavigate();
 
-    const VALID_USER = "admin";
-    const VALID_PASS = "claveadmin";
+    const VALID_USER = "Sapo";
+    const VALID_PASS = "Caballo123";
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -26,7 +26,7 @@ const Login = () => {
     return (
         <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white flex items-center justify-center p-4">
             <div className="max-w-md w-full">
-                
+
 
                 {/* Formulario */}
                 <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
@@ -109,9 +109,9 @@ const Login = () => {
                             </button>
                         </form>
 
-            
+
                     </div>
-                    
+
                     {/* Barra decorativa inferior */}
                     <div className="h-1 bg-gradient-to-r from-red-500 via-gray-400 to-black opacity-60"></div>
                 </div>
