@@ -585,12 +585,7 @@ const Dashboard = () => {
                       {pedido.estado === "pendiente" ? "✅ Marcar como aprobado" : "⏳ Marcar como pendiente"}
                     </button>
 
-                    <button
-                      onClick={() => solicitarEliminacion(pedido.id)}
-                      className="px-5 py-2.5 rounded-xl font-medium bg-gradient-to-r from-gray-100 to-white text-gray-700 border border-gray-300 hover:bg-gradient-to-r hover:from-gray-200 hover:to-gray-100 active:bg-gray-300 transition-all duration-300"
-                    >
-                      Eliminar
-                    </button>
+                    {/* Botón Eliminar removido */}
                   </div>
                 </div>
               </div>

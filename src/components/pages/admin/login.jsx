@@ -8,8 +8,8 @@ const Login = () => {
 
     const navigate = useNavigate();
 
-    const VALID_USER = "Sapo";
-    const VALID_PASS = "Caballo123";
+    const VALID_USER = "claveadmin";
+    const VALID_PASS = "Admmin";
 
     const handleSubmit = (e) => {
         e.preventDefault();
